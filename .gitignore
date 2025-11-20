@@ -22,6 +22,7 @@ conda-meta/
 .env
 ./LANGGRAPH/.env
 
+
 # Environment variables and secrets
 # .env
 # *.env
@@ -50,6 +51,7 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 
+hello 
 # Docker-related
 .docker/
 docker-compose.override.yaml
