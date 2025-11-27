@@ -44,7 +44,41 @@ class DisplayResultStreamlit:
                         
                 elif type(message)==AIMessage and message.content:
                     with st.chat_message("assistant"):
-                        st.write(message.content)
+                        st.write(message.content) 
+                        
+        elif usecase == 'AI NEWS':
+            
+            frequency = self.user_message
+            with st.spinner("Fetching and summarizing news....."):
+                result = graph.invoke({"messages": frequency})
+                
+                try:
+                    # FIXED: Changed AINEWS to AINews to match the actual path
+                    AI_NEWS_PATH = f"./AINews/{frequency.lower()}_summary.md"
+                    
+                    # Read the markdown file with UTF-8 encoding
+                    with open(AI_NEWS_PATH, "r", encoding="utf-8") as file:
+                        markdown_content = file.read()
+                        
+                    # Display the markdown content in Streamlit
+                    st.markdown(markdown_content, unsafe_allow_html=True)
+                    
+                    # Optional: Add a download button
+                    st.download_button(
+                        label="📥 Download Summary",
+                        data=markdown_content,
+                        file_name=f"{frequency.lower()}_summary.md",
+                        mime="text/markdown"
+                    )
+                
+                except FileNotFoundError:
+                    st.error(f"News Not Generated or File not Found: {AI_NEWS_PATH}")
+                    st.info("Please check if the AINews directory exists and the file was created successfully.")
+                    
+                except Exception as e:
+                    st.error(f"An error has occurred: {str(e)}")
+                    import traceback
+                    st.code(traceback.format_exc())  # Shows full error trace for debugging
                     
                     
                     
