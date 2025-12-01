@@ -18,22 +18,32 @@ async def main():
             "transport": "stdio",
         },
         "weather": {
-            "url": "http://localhost:8000/weather",
+            "url": "http://localhost:8000/mcp",
             "transport": "streamable_http",
+            # "transport": "sse",
+            # "host": "127.0.0.1",
+            # "port": 8000,
         }
     })
 
     os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
     
+    
     tools = await client.get_tools()
+
+    print((f"Available tools: {[tool.name for tool in tools]}"))
     model = ChatGroq(model="openai/gpt-oss-120b")
     agent = create_react_agent(model, tools)
 
     math_response = await agent.ainvoke({
         "messages": [{"role": "user", "content": "What is 10 plus 20 multiplied by 3?"}]
     })
+
+    weather_response = await agent.ainvoke({
+        "messages": [{"role": "user", "content": "What's the weather in Kathmandu?"}]
+    })
     
-    print("MATH RESPONSE:", math_response["messages"][-1].content)
+    print("WEATHER RESPONSE:", weather_response["messages"][-1].content)
 
 if __name__ == "__main__":
     asyncio.run(main())

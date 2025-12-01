@@ -9,6 +9,11 @@ async def get_weather(location:str)-> str:
 
     return f"Its sunny in Kathmandu today!!!"
 
-## The transport="streamable-http" means that the server will run in the terminal and the client will connect to it using the standard input and output streams.
+# ## The transport="streamable-http" means that the server will run in the terminal and the client will connect to it using the standard input and output streams.
 if __name__ == "__main__":
-    mcp.run(transport="streamable_http")
+    mcp.run(transport="streamable-http")
+    # mcp.run(transport="http")
+
+# The transport="sse" runs an HTTP server that clients can connect to via API calls
+# if __name__ == "__main__":
+#     mcp.run(transport="sse")
