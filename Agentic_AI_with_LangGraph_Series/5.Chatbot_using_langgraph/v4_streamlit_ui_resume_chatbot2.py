@@ -60,7 +60,6 @@ if 'thread_id' not in st.session_state:
 if 'chat_threads' not in st.session_state:
     st.session_state['chat_threads'] = []  # List of all conversation thread IDs
 
-
 if 'thread_names' not in st.session_state:
     st.session_state['thread_names'] = {}  # {thread_id: "Meaningful Conversation Name"}
 
