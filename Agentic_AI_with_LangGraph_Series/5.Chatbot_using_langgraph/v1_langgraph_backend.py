@@ -54,3 +54,16 @@ chatbot = graph.compile(checkpointer=checkpointer)
         
 # print(stream)
 # print(type(stream))
+
+
+### for resume chat feature ==============================================
+# CONFIG = {'configurable': {'thread_id': 'thread-1'}}
+
+
+# response = chatbot.invoke(
+#                     {'messages': [HumanMessage(content="Hi my name is sushant")]},
+#                     config = CONFIG,
+#                 )     
+
+# print(chatbot.get_state(config=CONFIG))
+# print(chatbot.get_state(config=CONFIG).values['messages'])
