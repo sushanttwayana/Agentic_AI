@@ -60,8 +60,13 @@ if 'thread_id' not in st.session_state:
 if 'chat_threads' not in st.session_state:
     st.session_state['chat_threads'] = []  # List of all conversation thread IDs
 
+
 if 'thread_names' not in st.session_state:
     st.session_state['thread_names'] = {}  # {thread_id: "Meaningful Conversation Name"}
+
+# Initialize renaming_thread to None to avoid KeyError
+if 'renaming_thread' not in st.session_state:
+    st.session_state['renaming_thread'] = None
 
 # Ensure current thread exists in threads list with proper name
 add_thread(st.session_state['thread_id'])
@@ -100,18 +105,28 @@ for thread_id in st.session_state['chat_threads'][::-1]:
             st.rerun()
     
     with col2:
-        # RENAME BUTTON - Edit conversation name
-        if st.sidebar.button("✏️", key=f"rename_btn_{thread_id}"):
-            # Show inline rename input
+        is_renaming = st.session_state['renaming_thread'] == thread_id
+        
+        if st.sidebar.button("✏️" if not is_renaming else "❌", 
+                           key=f"toggle_rename_{thread_id}", 
+                           help="Rename" if not is_renaming else "Cancel"):
+            # Toggle rename mode for this thread
+            st.session_state['renaming_thread'] = thread_id if not is_renaming else None
+            st.rerun()
+        
+        # Show rename input ONLY when in rename mode for this thread
+        if is_renaming:
             new_name = st.sidebar.text_input(
-                "Rename:", 
+                "New name:", 
                 value=thread_name, 
                 key=f"rename_input_{thread_id}",
-                help="Press Enter or click outside to save"
+                placeholder="Enter new name..."
             )
             
-            if st.sidebar.button("💾", key=f"save_rename_{thread_id}", help="Save name"):
+            if st.sidebar.button("💾 Save", key=f"save_{thread_id}", use_container_width=True):
+                # ✅ FIXED: Save name and exit rename mode
                 st.session_state['thread_names'][thread_id] = new_name.strip() or "New Chat"
+                st.session_state['renaming_thread'] = None  # Exit rename mode
                 st.rerun()
 
 st.sidebar.markdown("---")
