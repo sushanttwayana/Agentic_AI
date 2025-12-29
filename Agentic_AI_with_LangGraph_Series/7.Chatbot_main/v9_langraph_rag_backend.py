@@ -6,7 +6,7 @@ import tempfile
 from typing import Annotated, Any, Dict, Optional, TypedDict
 
 from dotenv import load_dotenv
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_community.vectorstores import FAISS
@@ -24,8 +24,15 @@ load_dotenv()
 # -------------------
 # 1. LLM + embeddings
 # -------------------
-llm = ChatOpenAI(model="gpt-4o-mini")
-embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+import os
+from langchain_groq import ChatGroq
+
+#os.environ["OPENAI_API_KEY"]=os.getenv("OPENAI_API_KEY")
+os.environ["GROQ_API_KEY"]=os.getenv("GROQ_API_KEY")
+
+llm=ChatGroq(model="openai/gpt-oss-120b", temperature=0.5)
+from langchain_ollama import OllamaEmbeddings
+embeddings = OllamaEmbeddings(model="gemma:2b")
 
 # -------------------
 # 2. PDF retriever store (per thread)
