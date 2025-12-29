@@ -1,5 +1,5 @@
 import streamlit as st
-from o4_langgraph_database_backend import chatbot, retrieve_all_threads
+from v4_langgraph_database_backend import chatbot, retrieve_all_threads
 from langchain_core.messages import HumanMessage
 import uuid
 
@@ -10,7 +10,7 @@ def generate_thread_id():
     return thread_id
 
 def reset_chat():
-    thread_id = generate_thread_id()
+    thread_id = generate_thread_id() 
     st.session_state['thread_id'] = thread_id
     add_thread(st.session_state['thread_id'])
     st.session_state['message_history'] = []
@@ -81,7 +81,7 @@ if user_input:
         st.text(user_input)
 
     #CONFIG = {'configurable': {'thread_id': st.session_state['thread_id']}}
-
+    ## for langchain tracing 
     CONFIG = {
         "configurable": {"thread_id": st.session_state["thread_id"]},
         "metadata": {
@@ -102,3 +102,7 @@ if user_input:
         )
 
     st.session_state['message_history'].append({'role': 'assistant', 'content': ai_message})
+    
+    
+    # --===================================link
+    # https://docs.langchain.com/langsmith/threads?_gl=1*ss4u76*_ga*NDc1NDQ4NTY3LjE3NjE1NTQyNDI.*_ga_GEEHR1LQNV*czE3NjY5ODI2NDckbzEyJGcxJHQxNzY2OTg1NjEyJGo1NCRsMCRoMA..
