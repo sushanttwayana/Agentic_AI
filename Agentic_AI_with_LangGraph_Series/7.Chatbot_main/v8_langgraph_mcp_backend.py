@@ -1,7 +1,7 @@
 from langgraph.graph import StateGraph, START, END
 from typing import TypedDict, Annotated
 from langchain_core.messages import BaseMessage, HumanMessage
-from langchain_openai import ChatOpenAI
+from langchain_groq import ChatGroq
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode, tools_condition
@@ -11,8 +11,9 @@ from langchain_mcp_adapters.client import MultiServerMCPClient
 from dotenv import load_dotenv
 import aiosqlite
 import requests
-import asyncio
+import asyncio    
 import threading
+import os
 
 load_dotenv()
 
@@ -38,7 +39,9 @@ def submit_async_task(coro):
 # -------------------
 # 1. LLM
 # -------------------
-llm = ChatOpenAI()
+os.environ["GROQ_API_KEY"]=os.getenv("GROQ_API_KEY")
+
+llm=ChatGroq(model="openai/gpt-oss-120b")
 
 # -------------------
 # 2. Tools
@@ -52,24 +55,44 @@ def get_stock_price(symbol: str) -> dict:
     Fetch latest stock price for a given symbol (e.g. 'AAPL', 'TSLA') 
     using Alpha Vantage with API key in the URL.
     """
-    url = f"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={symbol}&apikey=C9PE94QUEW9VWGFM"
+    url = f"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={symbol}&apikey=COLIC9J6JWQKFIMK"
     r = requests.get(url)
     return r.json()
 
 
 client = MultiServerMCPClient(
     {
-        "arith": {
-            "transport": "stdio",
-            "command": "python3",
-            "args": ["/Users/nitish/Desktop/mcp-math-server/main.py"],
+        "math_server": {
+            "command": "C:/Users/Vanilla/anaconda3/Scripts/uv.exe",
+            "args": [
+                "run",
+                "--directory",
+                "G:/sushant/Model_Context_Protocol/chatbot_mcp",
+                "fastmcp",
+                "run",
+                "math_server.py"
+            ],
+            "transport": "stdio"
         },
         "expense": {
-            "transport": "streamable_http",  # if this fails, try "sse"
-            "url": "https://splendid-gold-dingo.fastmcp.app/mcp"
-        }
+            "transport": "streamable_http",
+            "url": "https://expense-tracker-mcp-proj.fastmcp.app/mcp"
+        },
     }
 )
+# client = MultiServerMCPClient(
+#     {
+#         "arith": {
+#             "transport": "stdio",
+#             "command": "python3",
+#             "args": ["/Users/nitish/Desktop/mcp-math-server/main.py"],
+#         },
+#         "expense": {
+#             "transport": "streamable_http",  # if this fails, try "sse"
+#             "url": "https://splendid-gold-dingo.fastmcp.app/mcp"
+#         }
+#     }
+# )
 
 
 def load_mcp_tools() -> list[BaseTool]:
@@ -105,40 +128,67 @@ tool_node = ToolNode(tools) if tools else None
 # -------------------
 # 5. Checkpointer
 # -------------------
+_checkpointer = None  # Global singleton
 
+async def get_checkpointer():
+    """Get or create the global checkpointer with proper connection lifecycle."""
+    global _checkpointer
+    if _checkpointer is None:
+        import aiosqlite
+        conn = await aiosqlite.connect("chatbot.db")
+        await conn.__aenter__()  # Enter async context manually
+        _checkpointer = AsyncSqliteSaver(conn)
+    return _checkpointer
 
-async def _init_checkpointer():
-    conn = await aiosqlite.connect(database="chatbot.db")
-    return AsyncSqliteSaver(conn)
-
-
-checkpointer = run_async(_init_checkpointer())
+# Replace the old synchronous init
+checkpointer = None  # Will be initialized on first use
 
 # -------------------
-# 6. Graph
+# 6. Graph - FIXED
 # -------------------
-graph = StateGraph(ChatState)
-graph.add_node("chat_node", chat_node)
-graph.add_edge(START, "chat_node")
+async def get_chatbot():
+    """Get compiled chatbot with checkpointer."""
+    global checkpointer
+    if checkpointer is None:
+        checkpointer = await get_checkpointer()
+    
+    graph = StateGraph(ChatState)
+    graph.add_node("chat_node", chat_node)
+    graph.add_edge(START, "chat_node")
+    
+    if tool_node:
+        graph.add_node("tools", tool_node)
+        graph.add_conditional_edges("chat_node", tools_condition)
+        graph.add_edge("tools", "chat_node")
+    else:
+        graph.add_edge("chat_node", END)
+    
+    return graph.compile(checkpointer=checkpointer)
 
-if tool_node:
-    graph.add_node("tools", tool_node)
-    graph.add_conditional_edges("chat_node", tools_condition)
-    graph.add_edge("tools", "chat_node")
-else:
-    graph.add_edge("chat_node", END)
-
-chatbot = graph.compile(checkpointer=checkpointer)
+# Export for frontend
+chatbot = None  # Will be lazy-loaded
 
 # -------------------
 # 7. Helper
 # -------------------
 async def _alist_threads():
+    """List all thread IDs from checkpointer."""
+    if checkpointer is None:
+        cp = await get_checkpointer()
+    else:
+        cp = checkpointer
     all_threads = set()
-    async for checkpoint in checkpointer.alist(None):
-        all_threads.add(checkpoint.config["configurable"]["thread_id"])
+    try:
+        async for checkpoint in cp.alist(None):
+            all_threads.add(checkpoint.config["configurable"]["thread_id"])
+    except Exception:
+        pass  # No threads yet is OK
     return list(all_threads)
 
 
 def retrieve_all_threads():
-    return run_async(_alist_threads())
+    """Synchronous wrapper for frontend."""
+    try:
+        return run_async(_alist_threads())
+    except:
+        return []  # Graceful fallback for Streamlit init

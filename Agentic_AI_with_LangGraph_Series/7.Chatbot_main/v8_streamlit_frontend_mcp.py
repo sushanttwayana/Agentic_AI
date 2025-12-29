@@ -2,7 +2,7 @@ import queue
 import uuid
 
 import streamlit as st
-from langgraph_mcp_backend import chatbot, retrieve_all_threads, submit_async_task
+from v8_langgraph_mcp_backend import get_chatbot, retrieve_all_threads, submit_async_task
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
 # =========================== Utilities ===========================
@@ -21,11 +21,17 @@ def add_thread(thread_id):
     if thread_id not in st.session_state["chat_threads"]:
         st.session_state["chat_threads"].append(thread_id)
 
-
-def load_conversation(thread_id):
-    state = chatbot.get_state(config={"configurable": {"thread_id": thread_id}})
-    # Check if messages key exists in state values, return empty list if not
+async def load_conversation(thread_id):
+    bot = await get_chatbot()
+    state = await bot.aget_state(config={"configurable": {"thread_id": thread_id}})
     return state.values.get("messages", [])
+
+
+
+# def load_conversation(thread_id):
+    # state = chatbot.get_state(config={"configurable": {"thread_id": thread_id}})
+    # # Check if messages key exists in state values, return empty list if not
+    # return state.values.get("messages", [])
 
 
 # ======================= Session Initialization ===================
@@ -89,7 +95,8 @@ if user_input:
 
             async def run_stream():
                 try:
-                    async for message_chunk, metadata in chatbot.astream(
+                    bot = await get_chatbot()
+                    async for message_chunk, metadata in bot.astream(
                         {"messages": [HumanMessage(content=user_input)]},
                         config=CONFIG,
                         stream_mode="messages",
