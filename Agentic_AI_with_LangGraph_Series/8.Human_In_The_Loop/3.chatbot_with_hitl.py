@@ -28,6 +28,7 @@ llm=ChatGroq(model="openai/gpt-oss-120b", temperature=0.5)
 # -------------------
 # 2. Tools
 # -------------------
+# get_stock_price tool
 @tool
 def get_stock_price(symbol: str) -> dict:
     """
@@ -40,7 +41,7 @@ def get_stock_price(symbol: str) -> dict:
     r = requests.get(url)
     return r.json()
 
-
+# purachase_stock tool with human-in-the-loop
 @tool
 def purchase_stock(symbol: str, quantity: int) -> dict:
     """
