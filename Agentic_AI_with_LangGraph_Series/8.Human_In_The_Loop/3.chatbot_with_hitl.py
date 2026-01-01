@@ -12,6 +12,7 @@ from langgraph.types import interrupt, Command
 from dotenv import load_dotenv
 import requests
 
+## Load environment variables from .env file
 load_dotenv()
 
 # -------------------
